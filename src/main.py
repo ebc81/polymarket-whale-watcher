@@ -137,7 +137,7 @@ class WhaleWatcher:
         market_info = trade.get("market") if isinstance(trade.get("market"), dict) else {}
         
         # Get identifier candidates for market ID checks
-        identifier_candidates = [
+        identifier_candidates_raw = [
             trade.get("market_id"),
             trade.get("marketId"),
             trade.get("slug"),
@@ -145,7 +145,7 @@ class WhaleWatcher:
             market_info.get("id"),
             market_info.get("slug"),
         ]
-        identifier_candidates = [str(candidate).lower() for candidate in identifier_candidates if candidate]
+        identifier_candidates = [str(candidate).lower() for candidate in identifier_candidates_raw if candidate]
         
         # 2. Check exclude market IDs (priority: reject if matched)
         if config.exclude_market_ids:
