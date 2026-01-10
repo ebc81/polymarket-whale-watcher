@@ -160,6 +160,60 @@ EXCLUDE_MARKET_TEXT_FILTERS=
    - Open [@userinfobot](https://t.me/userinfobot) and get your user ID
    - Use this ID as your `TELEGRAM_CHAT_ID`
 
+### Finding PolyMarket Top Trader Addresses
+
+To effectively monitor whale activity, you need to identify and track addresses of top traders. Here are several methods to find high-value trader addresses:
+
+#### 1. PolyMarket Leaderboard and Analytics
+- Visit the [PolyMarket Leaderboard](https://polymarket.com/leaderboard) to see top traders ranked by profit
+- Browse market-specific pages on PolyMarket to identify large positions
+- Use third-party analytics platforms like [Dune Analytics](https://dune.com) for deeper insights into trader behavior
+- Copy wallet addresses directly from these platforms
+
+#### 2. PolyMarket Public API
+You can use the PolyMarket trades API to identify frequent or large traders:
+```bash
+# Example: Fetch recent trades and inspect for large transactions
+# First, explore the API response to understand available fields
+curl "https://clob.polymarket.com/trades?limit=100"
+
+# The response contains trade objects with fields like 'maker_address', 'size', 'price', etc.
+# You can filter for large trades (adjust the size threshold as needed)
+curl "https://clob.polymarket.com/trades?limit=100" | jq '.[] | select(.size > 10000)'
+```
+- Monitor the trades endpoint for large transactions
+- Note `maker_address` values that appear frequently with high-value trades
+- Track addresses from significant market movements
+
+#### 3. Community Sources and On-Chain Verification
+- **Discord/Telegram Communities**: Join PolyMarket community channels where traders share insights
+- **Twitter/X**: Follow PolyMarket traders and analysts who share wallet addresses
+- **Blockchain Explorers**: Use [Polygonscan](https://polygonscan.com) to verify addresses and inspect trading history
+  - Search for addresses you find to confirm their trading activity
+  - Check transaction history and volumes to validate they're active traders
+- **On-chain verification**: Always verify addresses through blockchain explorers before adding them
+
+#### 4. Adding Addresses to the Bot
+Once you've identified whale addresses, add them using either method:
+
+**Via Environment Variable (at startup):**
+```bash
+# Edit .env file
+WHALE_ADDRESSES=0x1234...,0x5678...,0x9abc...
+```
+
+**Via Telegram Command (while running):**
+```
+/addwhale 0x1234567890abcdef1234567890abcdef12345678
+/listwhales
+```
+
+**Tips:**
+- Start with 5-10 high-volume traders for focused monitoring
+- Regularly review and update your whale list based on market activity
+- Use `/listwhales` to manage your tracked addresses
+- Combine whale tracking with market filters for targeted alerts
+
 ## Bot Commands
 
 Once the bot is running, you can manage it using these Telegram commands:
