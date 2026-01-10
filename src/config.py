@@ -1,11 +1,15 @@
 """Configuration management for the PolyMarket Whale Watcher bot."""
 
+import json
+import logging
 import os
 from typing import List
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -16,6 +20,9 @@ class Config:
         # Telegram configuration
         self.telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
         self.telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
+        
+        # Persistent state file
+        self.state_file: str = os.getenv("CONFIG_STATE_FILE", "config_state.json")
         
         # Polling configuration
         self.poll_interval: int = int(os.getenv("POLL_INTERVAL", "60"))
@@ -39,7 +46,48 @@ class Config:
             text.strip().lower() for text in market_text_str.split(",") if text.strip()
         ]
         
+        self._load_state()
         self._validate()
+    
+    def _load_state(self):
+        """Load persisted state from disk if available."""
+        if not os.path.exists(self.state_file):
+            return
+        try:
+            with open(self.state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as exc:
+            logger.warning("Could not load config state from %s: %s", self.state_file, exc)
+            return
+        
+        self.poll_interval = max(10, int(data.get("poll_interval", self.poll_interval)))
+        self.min_trade_value = max(0.0, float(data.get("min_trade_value", self.min_trade_value)))
+        self.heartbeat_interval = max(60, int(data.get("heartbeat_interval", self.heartbeat_interval)))
+        persisted_whales = data.get("whale_addresses")
+        if isinstance(persisted_whales, list):
+            self.whale_addresses = [addr.strip().lower() for addr in persisted_whales if addr]
+        persisted_market_ids = data.get("market_ids")
+        if isinstance(persisted_market_ids, list):
+            self.market_ids = [mid.strip() for mid in persisted_market_ids if mid]
+        persisted_market_texts = data.get("market_text_filters")
+        if isinstance(persisted_market_texts, list):
+            self.market_text_filters = [text.strip().lower() for text in persisted_market_texts if text]
+    
+    def _save_state(self):
+        """Persist mutable settings to disk."""
+        data = {
+            "poll_interval": self.poll_interval,
+            "min_trade_value": self.min_trade_value,
+            "heartbeat_interval": self.heartbeat_interval,
+            "whale_addresses": self.whale_addresses,
+            "market_ids": self.market_ids,
+            "market_text_filters": self.market_text_filters,
+        }
+        try:
+            with open(self.state_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as exc:
+            logger.error("Failed to save config state to %s: %s", self.state_file, exc)
     
     def _validate(self):
         """Validate required configuration."""
@@ -53,6 +101,7 @@ class Config:
         address = address.strip().lower()
         if address and address not in self.whale_addresses:
             self.whale_addresses.append(address)
+            self._save_state()
             return True
         return False
     
@@ -61,6 +110,7 @@ class Config:
         address = address.strip().lower()
         if address in self.whale_addresses:
             self.whale_addresses.remove(address)
+            self._save_state()
             return True
         return False
     
@@ -69,6 +119,7 @@ class Config:
         market_id = market_id.strip()
         if market_id and market_id not in self.market_ids:
             self.market_ids.append(market_id)
+            self._save_state()
             return True
         return False
     
@@ -77,6 +128,7 @@ class Config:
         market_id = market_id.strip()
         if market_id in self.market_ids:
             self.market_ids.remove(market_id)
+            self._save_state()
             return True
         return False
     
@@ -85,6 +137,7 @@ class Config:
         text = text.strip().lower()
         if text and text not in self.market_text_filters:
             self.market_text_filters.append(text)
+            self._save_state()
             return True
         return False
     
@@ -93,17 +146,21 @@ class Config:
         text = text.strip().lower()
         if text in self.market_text_filters:
             self.market_text_filters.remove(text)
+            self._save_state()
             return True
         return False
     
     def set_min_trade_value(self, value: float) -> None:
         """Set the minimum trade value filter."""
         self.min_trade_value = max(0, value)
+        self._save_state()
     
     def set_poll_interval(self, interval: int) -> None:
         """Set the poll interval in seconds."""
         self.poll_interval = max(10, interval)
-
-
-# Global config instance
-config = Config()
+        self._save_state()
+    
+    def set_heartbeat_interval(self, interval: int) -> None:
+        """Set the heartbeat interval in seconds."""
+        self.heartbeat_interval = max(60, interval)
+        self._save_state()

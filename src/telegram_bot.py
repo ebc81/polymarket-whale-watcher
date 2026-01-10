@@ -70,6 +70,7 @@ class TelegramBot:
             "/listtexts - List text filters\n"
             "/setminvalue <value> - Set minimum trade value\n"
             "/setinterval <seconds> - Set poll interval\n"
+            "/setheartbeat <seconds> - Set heartbeat interval\n"
         )
         await update.message.reply_text(help_text)
     
@@ -86,6 +87,7 @@ class TelegramBot:
         status_text = (
             f"📊 Current Configuration\n\n"
             f"Poll Interval: {config.poll_interval}s\n"
+            f"Heartbeat Interval: {config.heartbeat_interval}s\n"
             f"Min Trade Value: ${config.min_trade_value}\n"
             f"Tracked Whales: {len(config.whale_addresses)}\n"
             f"Market Filters: {len(config.market_ids)}\n"
@@ -268,6 +270,25 @@ class TelegramBot:
         except ValueError:
             await update.message.reply_text("⚠️ Invalid interval. Please provide a number.")
     
+    async def setheartbeat_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /setheartbeat command."""
+        if not self._check_authorization(update):
+            await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        if not context.args:
+            await update.message.reply_text("Usage: /setheartbeat <seconds>")
+            return
+        
+        try:
+            interval = int(context.args[0])
+            config.set_heartbeat_interval(interval)
+            await update.message.reply_text(
+                f"✅ Set heartbeat interval to: {config.heartbeat_interval}s"
+            )
+        except ValueError:
+            await update.message.reply_text("⚠️ Invalid interval. Please provide a number.")
+    
     async def send_notification(self, message: str):
         """Send a notification message to the allowed chat."""
         if self.application:
@@ -299,6 +320,7 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("listtexts", self.listtexts_command))
         self.application.add_handler(CommandHandler("setminvalue", self.setminvalue_command))
         self.application.add_handler(CommandHandler("setinterval", self.setinterval_command))
+        self.application.add_handler(CommandHandler("setheartbeat", self.setheartbeat_command))
         
         # Initialize and start the bot runtime (keine eigene Loop schließen)
         await self.application.initialize()

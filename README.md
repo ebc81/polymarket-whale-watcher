@@ -180,6 +180,7 @@ Once the bot is running, you can manage it using these Telegram commands:
 ### Configuration
 - `/setminvalue <value>` - Set minimum trade value (USD)
 - `/setinterval <seconds>` - Set poll interval (minimum 10 seconds)
+- `/setheartbeat <seconds>` - Set heartbeat notification interval (minimum 60 seconds)
 
 ### Example Usage
 

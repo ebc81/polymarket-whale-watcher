@@ -32,6 +32,7 @@ ENV/
 # IDE
 .vscode/
 .idea/
+.vs/
 *.swp
 *.swo
 *~
@@ -52,3 +53,4 @@ logs/
 # Bot data
 bot_data/
 trades.json
+config_state.json
