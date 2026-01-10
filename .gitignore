@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 *.so
 .Python
@@ -28,6 +29,8 @@ ENV/
 
 # Environment variables
 .env
+*.env
+.env.*
 
 # IDE
 .vscode/
@@ -54,3 +57,5 @@ logs/
 bot_data/
 trades.json
 config_state.json
+*_state.json
+state.json

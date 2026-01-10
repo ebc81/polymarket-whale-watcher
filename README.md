@@ -276,9 +276,12 @@ polymarket-whale-watcher/
 ## Security Notes
 
 - Never commit your `.env` file to version control
-- Keep your bot token secret
+- Keep your bot token secret and secure
 - The bot only responds to the configured chat ID
 - Store whale addresses and API keys securely
+- **If your token is exposed:** Immediately rotate it via [@BotFather](https://t.me/botfather) → `/mybots` → select your bot → "Bot Settings" → "Regenerate Token"
+- Always keep `.env` and state files (like `config_state.json`) local - they are ignored by Git for your security
+- See [SECURITY.md](SECURITY.md) for detailed security guidelines and best practices
 
 ## API Rate Limiting
 
