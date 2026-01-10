@@ -28,7 +28,6 @@ class WhaleWatcher:
         self.bot = TelegramBot(config.telegram_bot_token, config.telegram_chat_id)
         self.api = PolyMarketAPI()
         self._last_heartbeat_sent = 0.0
-        self._started_at = 0.0
 
     async def _send_heartbeat(self, new_trades_count: int, fetched_trades: int):
         """Send a periodic heartbeat notification."""
@@ -42,57 +41,6 @@ class WhaleWatcher:
         )
         await self.bot.send_notification(message)
 
-    async def start(self):
-        """Start the whale watcher."""
-        logger.info("Starting PolyMarket Whale Watcher...")
-        logger.info(f"Tracking {len(config.whale_addresses)} whale addresses")
-        logger.info(f"Poll interval: {config.poll_interval}s")
-        logger.info(f"Min trade value: ${config.min_trade_value}")
-        
-        self.running = True
-        self._started_at = time.time()
-        
-        # Start the Telegram bot
-        await self.bot.start()
-        logger.info("Telegram bot started")
-        start_message = (
-            "🚀 PolyMarket Whale Watcher gestartet\n"
-            "━━━━━━━━━━━━━━━━━\n"
-            f"Whales monitored: {len(config.whale_addresses)}\n"
-            f"Poll interval: {config.poll_interval}s\n"
-            f"Min trade value: ${config.min_trade_value}"
-        )
-        await self.bot.send_notification(start_message)
-        self._last_heartbeat_sent = time.time()
-        
-        # Start polling for trades
-        poll_task = asyncio.create_task(self.poll_trades())
-        
-        try:
-            # Run until interrupted
-            await poll_task
-        except asyncio.CancelledError:
-            logger.info("Shutting down...")
-        finally:
-            self.running = False
-            await self.stop()
-    
-    async def stop(self):
-        """Stop the whale watcher."""
-        logger.info("Stopping PolyMarket Whale Watcher...")
-        uptime = time.time() - self._started_at if self._started_at else 0
-        stop_message = (
-            "🛑 Whale Watcher shut down\n"
-            "━━━━━━━━━━━━━━━━━\n"
-            f"Whales monitored: {len(config.whale_addresses)}\n"
-            f"Total runtime: {uptime/60:.1f} Minuten\n"
-            f"Poll interval: {config.poll_interval}s"
-        )
-        await self.bot.send_notification(stop_message)
-        await self.bot.stop()
-        await self.api.__aexit__(None, None, None)
-        logger.info("Stopped")
-
     async def _maybe_send_heartbeat(self, new_trades_count: int, fetched_trades: int):
         """Send a heartbeat if the configured interval elapsed."""
         if config.heartbeat_interval <= 0:
@@ -102,15 +50,6 @@ class WhaleWatcher:
             return
         await self._send_heartbeat(new_trades_count, fetched_trades)
         self._last_heartbeat_sent = current_time
-
-    @staticmethod
-    def _extract_trade_id(trade: Dict[str, Any]) -> Optional[str]:
-        """Extract a stable identifier from a trade payload."""
-        for key in ("transactionHash", "id", "name", "uuid"):
-            value = trade.get(key)
-            if value:
-                return str(value)
-        return None
 
     def should_notify_trade(self, trade: Dict[str, Any]) -> bool:
         """Check if a trade should trigger a notification.
@@ -216,6 +155,47 @@ class WhaleWatcher:
             # Wait for next poll interval
             await asyncio.sleep(config.poll_interval)
     
+    async def start(self):
+        """Start the whale watcher."""
+        logger.info("Starting PolyMarket Whale Watcher...")
+        logger.info(f"Tracking {len(config.whale_addresses)} whale addresses")
+        logger.info(f"Poll interval: {config.poll_interval}s")
+        logger.info(f"Min trade value: ${config.min_trade_value}")
+        
+        self.running = True
+        
+        # Start the Telegram bot
+        await self.bot.start()
+        logger.info("Telegram bot started")
+        start_message = (
+            "🚀 PolyMarket Whale Watcher gestartet\n"
+            "━━━━━━━━━━━━━━━━━\n"
+            f"Whales monitored: {len(config.whale_addresses)}\n"
+            f"Poll interval: {config.poll_interval}s\n"
+            f"Min trade value: ${config.min_trade_value}"
+        )
+        await self.bot.send_notification(start_message)
+        self._last_heartbeat_sent = time.time()
+        
+        # Start polling for trades
+        poll_task = asyncio.create_task(self.poll_trades())
+        
+        try:
+            # Run until interrupted
+            await poll_task
+        except asyncio.CancelledError:
+            logger.info("Shutting down...")
+        finally:
+            self.running = False
+            await self.stop()
+    
+    async def stop(self):
+        """Stop the whale watcher."""
+        logger.info("Stopping PolyMarket Whale Watcher...")
+        await self.bot.stop()
+        await self.api.__aexit__(None, None, None)
+        logger.info("Stopped")
+
 
 async def main():
     """Main entry point."""

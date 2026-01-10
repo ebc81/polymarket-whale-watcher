@@ -1,4 +1,4 @@
-# PolyMarket Whale Watcher 🐋
+﻿# PolyMarket Whale Watcher 🐋
 
 A Telegram bot that monitors large trades (whale activity) on PolyMarket and sends real-time notifications.
 
@@ -127,9 +127,9 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
 
 # PolyMarket Configuration
+POLYMARKET_API_KEY=your_polymarket_api_key_here
 POLL_INTERVAL=60                # How often to check for new trades (seconds)
 MIN_TRADE_VALUE=0               # Minimum trade value to notify (USD)
-HEARTBEAT_INTERVAL=600          # How often to send heartbeat notifications (seconds)
 
 # Bootstrap whale addresses (comma-separated)
 WHALE_ADDRESSES=0x0029ec6df644c87b7ba49e9627b04b8fa0f6bc93,0x003f24b98b1b54a49e3df4bb3a07a0f5fda4a3ed

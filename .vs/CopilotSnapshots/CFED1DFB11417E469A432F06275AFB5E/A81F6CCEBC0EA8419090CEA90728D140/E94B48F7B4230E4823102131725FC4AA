@@ -1,4 +1,4 @@
-"""Configuration management for the PolyMarket Whale Watcher bot."""
+﻿"""Configuration management for the PolyMarket Whale Watcher bot."""
 
 import os
 from typing import List
@@ -20,7 +20,6 @@ class Config:
         # Polling configuration
         self.poll_interval: int = int(os.getenv("POLL_INTERVAL", "60"))
         self.min_trade_value: float = float(os.getenv("MIN_TRADE_VALUE", "0"))
-        self.heartbeat_interval: int = max(60, int(os.getenv("HEARTBEAT_INTERVAL", "600")))
         
         # Whale addresses (bootstrap list)
         whale_addresses_str = os.getenv("WHALE_ADDRESSES", "")

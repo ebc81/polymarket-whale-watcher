@@ -82,7 +82,7 @@ class WhaleWatcher:
         logger.info("Stopping PolyMarket Whale Watcher...")
         uptime = time.time() - self._started_at if self._started_at else 0
         stop_message = (
-            "🛑 Whale Watcher shut down\n"
+            "🛑 Whale Watcher beendet\n"
             "━━━━━━━━━━━━━━━━━\n"
             f"Whales monitored: {len(config.whale_addresses)}\n"
             f"Total runtime: {uptime/60:.1f} Minuten\n"

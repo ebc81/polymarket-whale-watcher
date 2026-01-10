@@ -1,7 +1,7 @@
-"""Configuration management for the PolyMarket Whale Watcher bot."""
+﻿"""Configuration management for the PolyMarket Whale Watcher bot."""
 
 import os
-from typing import List
+from typing import List, Optional
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -17,10 +17,12 @@ class Config:
         self.telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
         self.telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
         
+        # PolyMarket API configuration
+        self.polymarket_api_key: str = os.getenv("POLYMARKET_API_KEY", "")
+        
         # Polling configuration
         self.poll_interval: int = int(os.getenv("POLL_INTERVAL", "60"))
         self.min_trade_value: float = float(os.getenv("MIN_TRADE_VALUE", "0"))
-        self.heartbeat_interval: int = max(60, int(os.getenv("HEARTBEAT_INTERVAL", "600")))
         
         # Whale addresses (bootstrap list)
         whale_addresses_str = os.getenv("WHALE_ADDRESSES", "")
@@ -47,6 +49,8 @@ class Config:
             raise ValueError("TELEGRAM_BOT_TOKEN is required")
         if not self.telegram_chat_id:
             raise ValueError("TELEGRAM_CHAT_ID is required")
+        if not self.polymarket_api_key:
+            raise ValueError("POLYMARKET_API_KEY is required")
     
     def add_whale_address(self, address: str) -> bool:
         """Add a whale address to track."""

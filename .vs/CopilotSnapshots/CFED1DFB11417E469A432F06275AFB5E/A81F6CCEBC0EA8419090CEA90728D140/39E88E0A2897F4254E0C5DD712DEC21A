@@ -1,4 +1,4 @@
-"""Configuration management for the PolyMarket Whale Watcher bot."""
+﻿"""Configuration management for the PolyMarket Whale Watcher bot."""
 
 import os
 from typing import List

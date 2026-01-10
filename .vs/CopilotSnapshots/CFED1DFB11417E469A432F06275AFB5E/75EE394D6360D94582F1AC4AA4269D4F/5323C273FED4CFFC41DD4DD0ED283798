@@ -1,4 +1,4 @@
-"""PolyMarket API integration for fetching trades."""
+﻿"""PolyMarket API integration for fetching trades."""
 
 import aiohttp
 import asyncio
@@ -13,16 +13,18 @@ logger = logging.getLogger(__name__)
 class PolyMarketAPI:
     """Client for interacting with the PolyMarket API."""
     
-    BASE_URL = "https://data-api.polymarket.com"
+    BASE_URL = "https://clob.polymarket.com"
     TRADES_ENDPOINT = "/trades"
     
-    def __init__(self, session: Optional[aiohttp.ClientSession] = None):
+    def __init__(self, session: Optional[aiohttp.ClientSession] = None, api_key: Optional[str] = None):
         """Initialize the PolyMarket API client.
         
         Args:
             session: Optional aiohttp session to use for requests
+            api_key: Optional PolyMarket API key for authenticated requests
         """
         self.session = session
+        self.api_key = api_key
         self._own_session = session is None
     
     @staticmethod
@@ -71,9 +73,12 @@ class PolyMarketAPI:
         Returns:
             List of trade dictionaries
         """
-        params: Dict[str, Any] = {"limit": limit, "offset": 0}
+        params = {}
         if maker_address:
-            params["user"] = maker_address.lower()
+            params["maker_address"] = maker_address.lower()
+        if limit:
+            params["_limit"] = limit
+        headers = {"x-api-key": self.api_key} if self.api_key else None
         
         for attempt in range(retries):
             try:
@@ -82,14 +87,10 @@ class PolyMarketAPI:
                     self._own_session = True
                 
                 url = f"{self.BASE_URL}{self.TRADES_ENDPOINT}"
-                async with self.session.get(url, params=params, timeout=30) as response:
+                async with self.session.get(url, params=params, headers=headers, timeout=30) as response:
                     if response.status == 200:
                         data = await response.json()
-                        trades = data if isinstance(data, list) else []
-                        if maker_address:
-                            for trade in trades:
-                                trade.setdefault("maker_address", maker_address.lower())
-                        return trades
+                        return data if isinstance(data, list) else []
                     else:
                         logger.warning(f"API returned status {response.status}")
                         if attempt < retries - 1:
@@ -152,47 +153,37 @@ class PolyMarketAPI:
         Returns:
             Formatted string representation of the trade
         """
-        trade_id = (
-            trade.get("transactionHash")
-            or trade.get("id")
-            or trade.get("name")
-            or trade.get("uuid")
-            or "unknown"
-        )
-        maker = trade.get("maker_address") or trade.get("user") or "unknown"
-        maker_display = maker[:10] + "..." if maker not in (None, "unknown") else maker
-        market_info = trade.get("market") if isinstance(trade.get("market"), dict) else {}
-        title = trade.get("title") or market_info.get("question") or "Unknown Market"
-        outcome = trade.get("outcome", "N/A")
+        # Extract trade details
+        trade_id = trade.get("id", "unknown")
+        maker = trade.get("maker_address", "unknown")[:10] + "..."
+        asset_id = trade.get("asset_id", "unknown")
         side = trade.get("side", "unknown").upper()
-        price = float(trade.get("price", 0))
-        size = float(trade.get("size", 0))
+        price = trade.get("price", 0)
+        size = trade.get("size", 0)
+        
+        # Calculate trade value
         value = PolyMarketAPI.calculate_trade_value(trade)
-        event_slug = trade.get("eventSlug") or trade.get("slug")
+        
+        # Format timestamp
         timestamp = trade.get("timestamp", trade.get("created_at", 0))
         if timestamp:
             try:
                 dt = datetime.fromtimestamp(int(timestamp))
                 time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
-            except Exception:
+            except:
                 time_str = str(timestamp)
         else:
             time_str = "unknown"
-        link = f"https://polymarket.com/event/{event_slug}" if event_slug else None
         
-        message = (
-            "🐋 Whale Trade Alert\n"
-            "━━━━━━━━━━━━━━━━━\n"
-            f"👤 Trader: {maker_display}\n"
-            f"📊 Market: {title}\n"
-            f"🏷️ Outcome: {outcome}\n"
-            f"⚖️ Side: {side}\n"
-            f"📈 Size: {size}\n"
-            f"💵 Price: ${price}\n"
-            f"💰 Value: ${value:.2f}\n"
-            f"🕒 Time: {time_str}\n"
-            f"🆔 ID: {trade_id}"
+        return (
+            f"🐋 Whale Trade Alert\n"
+            f"━━━━━━━━━━━━━━━━━\n"
+            f"Trader: {maker}\n"
+            f"Side: {side}\n"
+            f"Size: {size}\n"
+            f"Price: ${price}\n"
+            f"Value: ${value:.2f}\n"
+            f"Asset: {asset_id[:20]}...\n"
+            f"Time: {time_str}\n"
+            f"ID: {trade_id}"
         )
-        if link:
-            message += f"\n🔗 Link: {link}"
-        return message

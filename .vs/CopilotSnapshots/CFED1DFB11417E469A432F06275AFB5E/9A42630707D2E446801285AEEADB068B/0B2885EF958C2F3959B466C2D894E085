@@ -1,4 +1,4 @@
-"""PolyMarket API integration for fetching trades."""
+﻿"""PolyMarket API integration for fetching trades."""
 
 import aiohttp
 import asyncio

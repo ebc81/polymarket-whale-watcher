@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 from typing import Optional
 import asyncio
+import contextlib
 
 from .config import config
 
@@ -30,6 +31,7 @@ class TelegramBot:
         self.token = token
         self.allowed_chat_id = allowed_chat_id
         self.application: Optional[Application] = None
+        self._polling_task: Optional[asyncio.Task] = None
         self.notification_callback = None
     
     def set_notification_callback(self, callback):
@@ -41,14 +43,7 @@ class TelegramBot:
         self.notification_callback = callback
     
     def _check_authorization(self, update: Update) -> bool:
-        """Check if the user is authorized to use the bot.
-        
-        Args:
-            update: Telegram update object
-            
-        Returns:
-            True if authorized, False otherwise
-        """
+        """Check if the user is authorized to use the bot."""
         if update.effective_chat:
             return str(update.effective_chat.id) == self.allowed_chat_id
         return False
@@ -274,11 +269,7 @@ class TelegramBot:
             await update.message.reply_text("⚠️ Invalid interval. Please provide a number.")
     
     async def send_notification(self, message: str):
-        """Send a notification message to the allowed chat.
-        
-        Args:
-            message: Message to send
-        """
+        """Send a notification message to the allowed chat."""
         if self.application:
             try:
                 await self.application.bot.send_message(
@@ -309,14 +300,21 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("setminvalue", self.setminvalue_command))
         self.application.add_handler(CommandHandler("setinterval", self.setinterval_command))
         
-        # Initialize and start the bot
+        # Initialize and start the bot runtime (keine eigene Loop schließen)
         await self.application.initialize()
         await self.application.start()
-        await self.application.updater.start_polling(drop_pending_updates=True)
+        # Polling als Hintergrund-Task starten
+        self._polling_task = asyncio.create_task(
+            self.application.updater.start_polling(drop_pending_updates=True)
+        )
     
     async def stop(self):
         """Stop the Telegram bot."""
+        if self._polling_task:
+            with contextlib.suppress(asyncio.CancelledError):
+                await self.application.updater.stop()
+                await self._polling_task
+            self._polling_task = None
         if self.application:
-            await self.application.updater.stop()
             await self.application.stop()
             await self.application.shutdown()
