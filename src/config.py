@@ -1,0 +1,108 @@
+"""Configuration management for the PolyMarket Whale Watcher bot."""
+
+import os
+from typing import List, Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+
+class Config:
+    """Configuration class for the bot."""
+    
+    def __init__(self):
+        """Initialize configuration from environment variables."""
+        # Telegram configuration
+        self.telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+        self.telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
+        
+        # Polling configuration
+        self.poll_interval: int = int(os.getenv("POLL_INTERVAL", "60"))
+        self.min_trade_value: float = float(os.getenv("MIN_TRADE_VALUE", "0"))
+        
+        # Whale addresses (bootstrap list)
+        whale_addresses_str = os.getenv("WHALE_ADDRESSES", "")
+        self.whale_addresses: List[str] = [
+            addr.strip().lower() for addr in whale_addresses_str.split(",") if addr.strip()
+        ]
+        
+        # Market filters
+        market_ids_str = os.getenv("MARKET_IDS", "")
+        self.market_ids: List[str] = [
+            mid.strip() for mid in market_ids_str.split(",") if mid.strip()
+        ]
+        
+        market_text_str = os.getenv("MARKET_TEXT_FILTERS", "")
+        self.market_text_filters: List[str] = [
+            text.strip().lower() for text in market_text_str.split(",") if text.strip()
+        ]
+        
+        self._validate()
+    
+    def _validate(self):
+        """Validate required configuration."""
+        if not self.telegram_bot_token:
+            raise ValueError("TELEGRAM_BOT_TOKEN is required")
+        if not self.telegram_chat_id:
+            raise ValueError("TELEGRAM_CHAT_ID is required")
+    
+    def add_whale_address(self, address: str) -> bool:
+        """Add a whale address to track."""
+        address = address.strip().lower()
+        if address and address not in self.whale_addresses:
+            self.whale_addresses.append(address)
+            return True
+        return False
+    
+    def remove_whale_address(self, address: str) -> bool:
+        """Remove a whale address from tracking."""
+        address = address.strip().lower()
+        if address in self.whale_addresses:
+            self.whale_addresses.remove(address)
+            return True
+        return False
+    
+    def add_market_filter(self, market_id: str) -> bool:
+        """Add a market ID filter."""
+        market_id = market_id.strip()
+        if market_id and market_id not in self.market_ids:
+            self.market_ids.append(market_id)
+            return True
+        return False
+    
+    def remove_market_filter(self, market_id: str) -> bool:
+        """Remove a market ID filter."""
+        market_id = market_id.strip()
+        if market_id in self.market_ids:
+            self.market_ids.remove(market_id)
+            return True
+        return False
+    
+    def add_text_filter(self, text: str) -> bool:
+        """Add a market text filter."""
+        text = text.strip().lower()
+        if text and text not in self.market_text_filters:
+            self.market_text_filters.append(text)
+            return True
+        return False
+    
+    def remove_text_filter(self, text: str) -> bool:
+        """Remove a market text filter."""
+        text = text.strip().lower()
+        if text in self.market_text_filters:
+            self.market_text_filters.remove(text)
+            return True
+        return False
+    
+    def set_min_trade_value(self, value: float) -> None:
+        """Set the minimum trade value filter."""
+        self.min_trade_value = max(0, value)
+    
+    def set_poll_interval(self, interval: int) -> None:
+        """Set the poll interval in seconds."""
+        self.poll_interval = max(10, interval)
+
+
+# Global config instance
+config = Config()
