@@ -1,9 +1,13 @@
 """Trade storage and deduplication for the PolyMarket Whale Watcher bot."""
 
 import json
+import logging
 import os
 from typing import Set, Dict, Any
 from datetime import datetime, timedelta
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class TradeStore:
@@ -31,7 +35,7 @@ class TradeStore:
                     # Clean old entries (older than 7 days)
                     self._clean_old_entries()
             except Exception as e:
-                print(f"Error loading trade store: {e}")
+                logger.error(f"Error loading trade store from {self.filepath}: {e}", exc_info=True)
                 self.seen_trades = set()
                 self.trade_timestamps = {}
     
@@ -45,7 +49,7 @@ class TradeStore:
             with open(self.filepath, 'w') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            print(f"Error saving trade store: {e}")
+            logger.error(f"Error saving trade store to {self.filepath}: {e}", exc_info=True)
     
     def _clean_old_entries(self):
         """Remove entries older than 7 days."""

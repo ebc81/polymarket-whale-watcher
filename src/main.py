@@ -1,13 +1,21 @@
 """Main entry point for the PolyMarket Whale Watcher bot."""
 
 import asyncio
+import logging
 import sys
 from typing import Dict, Any
 
-from src.config import config
-from src.store import trade_store
-from src.polymarket import PolyMarketAPI
-from src.telegram_bot import TelegramBot
+from .config import config
+from .store import trade_store
+from .polymarket import PolyMarketAPI
+from .telegram_bot import TelegramBot
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 class WhaleWatcher:
@@ -29,12 +37,7 @@ class WhaleWatcher:
             True if the trade should trigger a notification
         """
         # Check trade value
-        side = trade.get("side", "").upper()
-        price = float(trade.get("price", 0))
-        size = float(trade.get("size", 0))
-        
-        # Calculate trade value (size * price for buy, size for sell)
-        value = size if side == "SELL" else size * price
+        value = PolyMarketAPI.calculate_trade_value(trade)
         
         if value < config.min_trade_value:
             return False
@@ -62,20 +65,20 @@ class WhaleWatcher:
     
     async def poll_trades(self):
         """Poll for new trades and send notifications."""
-        print("Starting trade polling...")
+        logger.info("Starting trade polling...")
         
         while self.running:
             try:
                 # Fetch trades for all whale addresses
                 if not config.whale_addresses:
-                    print("No whale addresses configured. Waiting...")
+                    logger.warning("No whale addresses configured. Waiting...")
                     await asyncio.sleep(config.poll_interval)
                     continue
                 
-                print(f"Fetching trades for {len(config.whale_addresses)} whale addresses...")
+                logger.debug(f"Fetching trades for {len(config.whale_addresses)} whale addresses...")
                 trades = await self.api.get_all_whale_trades(config.whale_addresses)
                 
-                print(f"Fetched {len(trades)} trades")
+                logger.debug(f"Fetched {len(trades)} trades")
                 
                 # Process trades
                 new_trades_count = 0
@@ -105,10 +108,10 @@ class WhaleWatcher:
                     await asyncio.sleep(1)
                 
                 if new_trades_count > 0:
-                    print(f"Sent {new_trades_count} notifications")
+                    logger.info(f"Sent {new_trades_count} notifications")
                 
             except Exception as e:
-                print(f"Error in polling loop: {e}")
+                logger.error(f"Error in polling loop: {e}", exc_info=True)
                 # Continue on error with retry delay
                 await asyncio.sleep(10)
             
@@ -117,16 +120,16 @@ class WhaleWatcher:
     
     async def start(self):
         """Start the whale watcher."""
-        print("Starting PolyMarket Whale Watcher...")
-        print(f"Tracking {len(config.whale_addresses)} whale addresses")
-        print(f"Poll interval: {config.poll_interval}s")
-        print(f"Min trade value: ${config.min_trade_value}")
+        logger.info("Starting PolyMarket Whale Watcher...")
+        logger.info(f"Tracking {len(config.whale_addresses)} whale addresses")
+        logger.info(f"Poll interval: {config.poll_interval}s")
+        logger.info(f"Min trade value: ${config.min_trade_value}")
         
         self.running = True
         
         # Start the Telegram bot
         await self.bot.start()
-        print("Telegram bot started")
+        logger.info("Telegram bot started")
         
         # Start polling for trades
         poll_task = asyncio.create_task(self.poll_trades())
@@ -135,17 +138,17 @@ class WhaleWatcher:
             # Run until interrupted
             await poll_task
         except asyncio.CancelledError:
-            print("Shutting down...")
+            logger.info("Shutting down...")
         finally:
             self.running = False
             await self.stop()
     
     async def stop(self):
         """Stop the whale watcher."""
-        print("Stopping PolyMarket Whale Watcher...")
+        logger.info("Stopping PolyMarket Whale Watcher...")
         await self.bot.stop()
         await self.api.__aexit__(None, None, None)
-        print("Stopped")
+        logger.info("Stopped")
 
 
 async def main():
@@ -154,9 +157,9 @@ async def main():
         watcher = WhaleWatcher()
         await watcher.start()
     except KeyboardInterrupt:
-        print("\nReceived interrupt signal")
+        logger.info("Received interrupt signal")
     except Exception as e:
-        print(f"Fatal error: {e}")
+        logger.error(f"Fatal error: {e}", exc_info=True)
         sys.exit(1)
 
 
@@ -164,5 +167,5 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\nExiting...")
+        logger.info("Exiting...")
         sys.exit(0)

@@ -2,8 +2,12 @@
 
 import aiohttp
 import asyncio
+import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class PolyMarketAPI:
@@ -20,6 +24,23 @@ class PolyMarketAPI:
         """
         self.session = session
         self._own_session = session is None
+    
+    @staticmethod
+    def calculate_trade_value(trade: Dict[str, Any]) -> float:
+        """Calculate the trade value.
+        
+        Args:
+            trade: Trade dictionary from the API
+            
+        Returns:
+            Trade value in USD
+        """
+        side = trade.get("side", "").upper()
+        price = float(trade.get("price", 0))
+        size = float(trade.get("size", 0))
+        
+        # Calculate trade value (size * price for buy, size for sell)
+        return size if side == "SELL" else size * price
     
     async def __aenter__(self):
         """Async context manager entry."""
@@ -68,16 +89,16 @@ class PolyMarketAPI:
                         data = await response.json()
                         return data if isinstance(data, list) else []
                     else:
-                        print(f"API returned status {response.status}")
+                        logger.warning(f"API returned status {response.status}")
                         if attempt < retries - 1:
                             await asyncio.sleep(retry_delay)
                         continue
             except asyncio.TimeoutError:
-                print(f"Timeout fetching trades (attempt {attempt + 1}/{retries})")
+                logger.warning(f"Timeout fetching trades (attempt {attempt + 1}/{retries})")
                 if attempt < retries - 1:
                     await asyncio.sleep(retry_delay)
             except Exception as e:
-                print(f"Error fetching trades (attempt {attempt + 1}/{retries}): {e}")
+                logger.error(f"Error fetching trades (attempt {attempt + 1}/{retries}): {e}", exc_info=True)
                 if attempt < retries - 1:
                     await asyncio.sleep(retry_delay)
         
@@ -109,7 +130,7 @@ class PolyMarketAPI:
             if isinstance(result, list):
                 all_trades.extend(result)
             elif isinstance(result, Exception):
-                print(f"Error fetching trades: {result}")
+                logger.error(f"Error fetching trades for whale: {result}")
         
         # Sort by timestamp (most recent first)
         all_trades.sort(
@@ -137,8 +158,8 @@ class PolyMarketAPI:
         price = trade.get("price", 0)
         size = trade.get("size", 0)
         
-        # Calculate trade value (size * price for buy, size for sell)
-        value = float(size) if side == "SELL" else float(size) * float(price)
+        # Calculate trade value
+        value = PolyMarketAPI.calculate_trade_value(trade)
         
         # Format timestamp
         timestamp = trade.get("timestamp", trade.get("created_at", 0))

@@ -1,5 +1,6 @@
 """Telegram bot for managing the PolyMarket Whale Watcher."""
 
+import logging
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -11,6 +12,9 @@ from typing import Optional
 import asyncio
 
 from .config import config
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class TelegramBot:
@@ -282,7 +286,7 @@ class TelegramBot:
                     text=message
                 )
             except Exception as e:
-                print(f"Error sending notification: {e}")
+                logger.error(f"Failed to send notification to chat {self.allowed_chat_id}: {e}", exc_info=True)
     
     async def start(self):
         """Start the Telegram bot."""
