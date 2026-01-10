@@ -167,18 +167,23 @@ To effectively monitor whale activity, you need to identify and track addresses 
 #### 1. PolyMarket Leaderboard and Analytics
 - Visit the [PolyMarket Leaderboard](https://polymarket.com/leaderboard) to see top traders ranked by profit
 - Browse market-specific pages on PolyMarket to identify large positions
-- Use third-party analytics platforms like [Dune Analytics](https://dune.com) or [PolyMarket Analytics](https://polymarket.com/analytics) for deeper insights
+- Use third-party analytics platforms like [Dune Analytics](https://dune.com) for deeper insights into trader behavior
 - Copy wallet addresses directly from these platforms
 
 #### 2. PolyMarket Public API
 You can use the PolyMarket trades API to identify frequent or large traders:
 ```bash
-# Example: Find trades above $10,000
+# Example: Fetch recent trades and inspect for large transactions
+# First, explore the API response to understand available fields
+curl "https://clob.polymarket.com/trades?limit=100"
+
+# The response contains trade objects with fields like 'maker_address', 'size', 'price', etc.
+# You can filter for large trades (adjust the size threshold as needed)
 curl "https://clob.polymarket.com/trades?limit=100" | jq '.[] | select(.size > 10000)'
 ```
 - Monitor the trades endpoint for large transactions
-- Note addresses that appear frequently with high-value trades
-- Track maker addresses from significant market movements
+- Note `maker_address` values that appear frequently with high-value trades
+- Track addresses from significant market movements
 
 #### 3. Community Sources and On-Chain Verification
 - **Discord/Telegram Communities**: Join PolyMarket community channels where traders share insights
