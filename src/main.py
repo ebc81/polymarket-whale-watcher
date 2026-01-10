@@ -115,13 +115,20 @@ class WhaleWatcher:
     def should_notify_trade(self, trade: Dict[str, Any]) -> bool:
         """Check if a trade should trigger a notification.
         
+        Filtering priority order:
+        1. Minimum trade value
+        2. Exclude market IDs (reject if matched)
+        3. Exclude text filters (reject if matched)
+        4. Include market IDs (if any configured)
+        5. Include text filters (if any configured)
+        
         Args:
             trade: Trade dictionary from the API
             
         Returns:
             True if the trade should trigger a notification
         """
-        # Check trade value
+        # 1. Check trade value (minimum threshold)
         value = PolyMarketAPI.calculate_trade_value(trade)
         
         if value < config.min_trade_value:
@@ -129,32 +136,47 @@ class WhaleWatcher:
         
         market_info = trade.get("market") if isinstance(trade.get("market"), dict) else {}
         
-        # Check market ID filter
-        if config.market_ids:
-            normalized_filters = {mid.lower() for mid in config.market_ids}
-            identifier_candidates = [
-                trade.get("market_id"),
-                trade.get("marketId"),
-                trade.get("slug"),
-                trade.get("eventSlug"),
-                market_info.get("id"),
-                market_info.get("slug"),
-            ]
-            identifier_candidates = [str(candidate).lower() for candidate in identifier_candidates if candidate]
-            if not any(candidate in normalized_filters for candidate in identifier_candidates):
+        # Get identifier candidates for market ID checks
+        identifier_candidates = [
+            trade.get("market_id"),
+            trade.get("marketId"),
+            trade.get("slug"),
+            trade.get("eventSlug"),
+            market_info.get("id"),
+            market_info.get("slug"),
+        ]
+        identifier_candidates = [str(candidate).lower() for candidate in identifier_candidates if candidate]
+        
+        # 2. Check exclude market IDs (priority: reject if matched)
+        if config.exclude_market_ids:
+            normalized_exclude_ids = {mid.lower() for mid in config.exclude_market_ids}
+            if any(candidate in normalized_exclude_ids for candidate in identifier_candidates):
                 return False
         
-        # Check text filters
+        # Get market text for text filter checks
+        market_text = " ".join(filter(None, [
+            str(trade.get("title", "")),
+            str(trade.get("question", "")),
+            str(trade.get("outcome", "")),
+            str(trade.get("eventSlug", "")),
+            str(trade.get("slug", "")),
+            str(trade.get("market_id", "")),
+            str(market_info.get("question", "")),
+        ])).lower()
+        
+        # 3. Check exclude text filters (priority: reject if matched)
+        if config.exclude_market_text_filters:
+            if any(text_filter in market_text for text_filter in config.exclude_market_text_filters):
+                return False
+        
+        # 4. Check include market IDs (if configured, must match)
+        if config.market_ids:
+            normalized_include_ids = {mid.lower() for mid in config.market_ids}
+            if not any(candidate in normalized_include_ids for candidate in identifier_candidates):
+                return False
+        
+        # 5. Check include text filters (if configured, must match)
         if config.market_text_filters:
-            market_text = " ".join(filter(None, [
-                str(trade.get("title", "")),
-                str(trade.get("question", "")),
-                str(trade.get("outcome", "")),
-                str(trade.get("eventSlug", "")),
-                str(trade.get("slug", "")),
-                str(trade.get("market_id", "")),
-                str(market_info.get("question", "")),
-            ])).lower()
             if not any(text_filter in market_text for text_filter in config.market_text_filters):
                 return False
         

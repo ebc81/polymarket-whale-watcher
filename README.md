@@ -139,6 +139,12 @@ MARKET_IDS=
 
 # Market text filters (optional, comma-separated keywords)
 MARKET_TEXT_FILTERS=
+
+# Market exclusion filters (optional, comma-separated market IDs to exclude)
+EXCLUDE_MARKET_IDS=
+
+# Market text exclusion filters (optional, comma-separated keywords to exclude)
+EXCLUDE_MARKET_TEXT_FILTERS=
 ```
 
 ### Getting Your Telegram Credentials
@@ -172,10 +178,20 @@ Once the bot is running, you can manage it using these Telegram commands:
 - `/removemarket <id>` - Remove a market ID filter
 - `/listmarkets` - List all market filters
 
+### Market Exclusion Filters
+- `/addmex <id>` - Exclude a market by ID
+- `/removemex <id>` - Remove market ID exclusion
+- `/listmex` - List excluded market IDs
+
 ### Text Filters
 - `/addtext <keyword>` - Add a keyword filter for market names
 - `/removetext <keyword>` - Remove a keyword filter
 - `/listtexts` - List all text filters
+
+### Text Exclusion Filters
+- `/addtex <keyword>` - Exclude markets by keyword
+- `/removetex <keyword>` - Remove keyword exclusion
+- `/listtex` - List excluded keywords
 
 ### Configuration
 - `/setminvalue <value>` - Set minimum trade value (USD)
@@ -196,12 +212,25 @@ Once the bot is running, you can manage it using these Telegram commands:
 
 1. **Polling Loop**: The bot continuously polls the PolyMarket trades API at the configured interval
 2. **Trade Fetching**: It fetches recent trades for all tracked whale addresses
-3. **Filtering**: Trades are filtered based on:
-   - Minimum trade value
-   - Market ID (if configured)
-   - Market text/keywords (if configured)
+3. **Filtering**: Trades are filtered based on priority order:
+   - Minimum trade value threshold
+   - Market ID exclusions (reject if matched)
+   - Text exclusions (reject if matched)
+   - Market ID inclusions (if configured, must match)
+   - Text inclusions (if configured, must match)
 4. **Deduplication**: Each trade is checked against a local store to prevent duplicate notifications
 5. **Notifications**: Qualifying trades are formatted and sent to your Telegram chat
+
+### Filter Priority
+
+The bot applies filters in the following priority order:
+1. **Minimum trade value**: Trades below the minimum are always excluded
+2. **Exclude market IDs**: If a trade matches an excluded market ID, it's rejected
+3. **Exclude text filters**: If a trade matches an excluded keyword, it's rejected
+4. **Include market IDs**: If market ID filters are configured, only matching trades pass
+5. **Include text filters**: If text filters are configured, only matching trades pass
+
+This means exclusion filters take priority over inclusion filters, allowing you to fine-tune which trades you want to be notified about.
 
 ## Project Structure
 

@@ -68,6 +68,12 @@ class TelegramBot:
             "/addtext <keyword> - Add text filter\n"
             "/removetext <keyword> - Remove text filter\n"
             "/listtexts - List text filters\n"
+            "/addmex <id> - Exclude market ID\n"
+            "/removemex <id> - Remove market ID exclusion\n"
+            "/listmex - List excluded market IDs\n"
+            "/addtex <keyword> - Exclude text filter\n"
+            "/removetex <keyword> - Remove text exclusion\n"
+            "/listtex - List excluded text filters\n"
             "/setminvalue <value> - Set minimum trade value\n"
             "/setinterval <seconds> - Set poll interval\n"
             "/setheartbeat <seconds> - Set heartbeat interval\n"
@@ -92,6 +98,8 @@ class TelegramBot:
             f"Tracked Whales: {len(config.whale_addresses)}\n"
             f"Market Filters: {len(config.market_ids)}\n"
             f"Text Filters: {len(config.market_text_filters)}\n"
+            f"Excluded Market IDs: {len(config.exclude_market_ids)}\n"
+            f"Excluded Text Filters: {len(config.exclude_market_text_filters)}\n"
         )
         await update.message.reply_text(status_text)
     
@@ -289,6 +297,100 @@ class TelegramBot:
         except ValueError:
             await update.message.reply_text("⚠️ Invalid interval. Please provide a number.")
     
+    async def addmex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /addmex command."""
+        if not self._check_authorization(update):
+            await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        if not context.args:
+            await update.message.reply_text("Usage: /addmex <market_id>")
+            return
+        
+        market_id = context.args[0]
+        if config.add_exclude_market_id(market_id):
+            await update.message.reply_text(f"✅ Added market exclusion: {market_id}")
+        else:
+            await update.message.reply_text(f"⚠️ Market exclusion already exists: {market_id}")
+    
+    async def removemex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /removemex command."""
+        if not self._check_authorization(update):
+            await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        if not context.args:
+            await update.message.reply_text("Usage: /removemex <market_id>")
+            return
+        
+        market_id = context.args[0]
+        if config.remove_exclude_market_id(market_id):
+            await update.message.reply_text(f"✅ Removed market exclusion: {market_id}")
+        else:
+            await update.message.reply_text(f"⚠️ Market exclusion not found: {market_id}")
+    
+    async def listmex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /listmex command."""
+        if not self._check_authorization(update):
+            await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        if config.exclude_market_ids:
+            exclusions_text = "🚫 Excluded Market IDs:\n\n" + "\n".join(
+                f"{i+1}. {mid}" for i, mid in enumerate(config.exclude_market_ids)
+            )
+        else:
+            exclusions_text = "No market ID exclusions configured."
+        
+        await update.message.reply_text(exclusions_text)
+    
+    async def addtex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /addtex command."""
+        if not self._check_authorization(update):
+            await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        if not context.args:
+            await update.message.reply_text("Usage: /addtex <keyword>")
+            return
+        
+        text = " ".join(context.args)
+        if config.add_exclude_text_filter(text):
+            await update.message.reply_text(f"✅ Added text exclusion: {text}")
+        else:
+            await update.message.reply_text(f"⚠️ Text exclusion already exists: {text}")
+    
+    async def removetex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /removetex command."""
+        if not self._check_authorization(update):
+            await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        if not context.args:
+            await update.message.reply_text("Usage: /removetex <keyword>")
+            return
+        
+        text = " ".join(context.args)
+        if config.remove_exclude_text_filter(text):
+            await update.message.reply_text(f"✅ Removed text exclusion: {text}")
+        else:
+            await update.message.reply_text(f"⚠️ Text exclusion not found: {text}")
+    
+    async def listtex_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /listtex command."""
+        if not self._check_authorization(update):
+            await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        if config.exclude_market_text_filters:
+            exclusions_text = "🚫 Excluded Text Filters:\n\n" + "\n".join(
+                f"{i+1}. {text}" for i, text in enumerate(config.exclude_market_text_filters)
+            )
+        else:
+            exclusions_text = "No text exclusions configured."
+        
+        await update.message.reply_text(exclusions_text)
+    
     async def send_notification(self, message: str):
         """Send a notification message to the allowed chat."""
         if self.application:
@@ -321,6 +423,12 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("setminvalue", self.setminvalue_command))
         self.application.add_handler(CommandHandler("setinterval", self.setinterval_command))
         self.application.add_handler(CommandHandler("setheartbeat", self.setheartbeat_command))
+        self.application.add_handler(CommandHandler("addmex", self.addmex_command))
+        self.application.add_handler(CommandHandler("removemex", self.removemex_command))
+        self.application.add_handler(CommandHandler("listmex", self.listmex_command))
+        self.application.add_handler(CommandHandler("addtex", self.addtex_command))
+        self.application.add_handler(CommandHandler("removetex", self.removetex_command))
+        self.application.add_handler(CommandHandler("listtex", self.listtex_command))
         
         # Initialize and start the bot runtime (keine eigene Loop schließen)
         await self.application.initialize()
