@@ -1,0 +1,15 @@
+[Unit]
+Description=PolyMarket Whale Watcher Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/polymarket-whale-watcher
+Environment="PATH=/home/pi/polymarket-whale-watcher/venv/bin"
+ExecStart=/home/pi/polymarket-whale-watcher/venv/bin/python -m src.main
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
