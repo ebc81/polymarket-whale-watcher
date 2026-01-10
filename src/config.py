@@ -46,6 +46,17 @@ class Config:
             text.strip().lower() for text in market_text_str.split(",") if text.strip()
         ]
         
+        # Exclusion filters
+        exclude_market_ids_str = os.getenv("EXCLUDE_MARKET_IDS", "")
+        self.exclude_market_ids: List[str] = [
+            mid.strip().lower() for mid in exclude_market_ids_str.split(",") if mid.strip()
+        ]
+        
+        exclude_text_str = os.getenv("EXCLUDE_MARKET_TEXT_FILTERS", "")
+        self.exclude_market_text_filters: List[str] = [
+            text.strip().lower() for text in exclude_text_str.split(",") if text.strip()
+        ]
+        
         self._load_state()
         self._validate()
     
@@ -72,6 +83,12 @@ class Config:
         persisted_market_texts = data.get("market_text_filters")
         if isinstance(persisted_market_texts, list):
             self.market_text_filters = [text.strip().lower() for text in persisted_market_texts if text]
+        persisted_exclude_market_ids = data.get("exclude_market_ids")
+        if isinstance(persisted_exclude_market_ids, list):
+            self.exclude_market_ids = [mid.strip().lower() for mid in persisted_exclude_market_ids if mid]
+        persisted_exclude_texts = data.get("exclude_market_text_filters")
+        if isinstance(persisted_exclude_texts, list):
+            self.exclude_market_text_filters = [text.strip().lower() for text in persisted_exclude_texts if text]
     
     def _save_state(self):
         """Persist mutable settings to disk."""
@@ -82,6 +99,8 @@ class Config:
             "whale_addresses": self.whale_addresses,
             "market_ids": self.market_ids,
             "market_text_filters": self.market_text_filters,
+            "exclude_market_ids": self.exclude_market_ids,
+            "exclude_market_text_filters": self.exclude_market_text_filters,
         }
         try:
             with open(self.state_file, "w", encoding="utf-8") as f:
@@ -164,6 +183,42 @@ class Config:
         """Set the heartbeat interval in seconds."""
         self.heartbeat_interval = max(60, interval)
         self._save_state()
+    
+    def add_exclude_market_id(self, market_id: str) -> bool:
+        """Add a market ID to the exclusion list."""
+        market_id = market_id.strip().lower()
+        if market_id and market_id not in self.exclude_market_ids:
+            self.exclude_market_ids.append(market_id)
+            self._save_state()
+            return True
+        return False
+    
+    def remove_exclude_market_id(self, market_id: str) -> bool:
+        """Remove a market ID from the exclusion list."""
+        market_id = market_id.strip().lower()
+        if market_id in self.exclude_market_ids:
+            self.exclude_market_ids.remove(market_id)
+            self._save_state()
+            return True
+        return False
+    
+    def add_exclude_text_filter(self, text: str) -> bool:
+        """Add a text filter to the exclusion list."""
+        text = text.strip().lower()
+        if text and text not in self.exclude_market_text_filters:
+            self.exclude_market_text_filters.append(text)
+            self._save_state()
+            return True
+        return False
+    
+    def remove_exclude_text_filter(self, text: str) -> bool:
+        """Remove a text filter from the exclusion list."""
+        text = text.strip().lower()
+        if text in self.exclude_market_text_filters:
+            self.exclude_market_text_filters.remove(text)
+            self._save_state()
+            return True
+        return False
 
 
 # Global config instance
