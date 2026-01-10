@@ -164,3 +164,7 @@ class Config:
         """Set the heartbeat interval in seconds."""
         self.heartbeat_interval = max(60, interval)
         self._save_state()
+
+
+# Global config instance
+config = Config()
