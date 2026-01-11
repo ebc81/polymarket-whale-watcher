@@ -312,6 +312,15 @@ polymarket-whale-watcher/
 - Make sure you've started a chat with your bot first
 - Check that the bot token is valid
 
+### python-telegram-bot v22 lifecycle notes
+- The bot uses `Application` from PTB v22. For commands to work, the application must be initialized and started before polling.
+- Lifecycle in this project:
+   - Initialize: `await application.initialize()`
+   - Start: `await application.start()` (activates handlers/dispatcher)
+   - Poll: `await application.updater.start_polling(...)` (runs asynchronously in a background task)
+   - Stop: `await application.updater.stop()` then `await application.stop()` and `await application.shutdown()`
+- If you see "event loop already running", avoid calling `run_polling()` inside `asyncio.run(...)`. Use the async lifecycle above.
+
 ### No trade notifications
 - Verify whale addresses are correctly configured
 - Check if `MIN_TRADE_VALUE` is set too high

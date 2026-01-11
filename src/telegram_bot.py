@@ -404,9 +404,8 @@ class TelegramBot:
     
     async def start(self):
         """Start the Telegram bot."""
-        # Create application
         self.application = Application.builder().token(self.token).build()
-        
+
         # Add command handlers
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
@@ -429,22 +428,26 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("addtex", self.addtex_command))
         self.application.add_handler(CommandHandler("removetex", self.removetex_command))
         self.application.add_handler(CommandHandler("listtex", self.listtex_command))
-        
-        # Initialize and start the bot runtime (keine eigene Loop schließen)
+
+        # Initialize and start the application so handlers are active
         await self.application.initialize()
         await self.application.start()
-        # Polling als Hintergrund-Task starten
+
+        # Start polling in a background task (async, non-blocking)
         self._polling_task = asyncio.create_task(
             self.application.updater.start_polling(drop_pending_updates=True)
         )
-    
+
     async def stop(self):
         """Stop the Telegram bot."""
         if self._polling_task:
+            self._polling_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
-                await self.application.updater.stop()
                 await self._polling_task
             self._polling_task = None
         if self.application:
+            # Stop polling and application lifecycle
+            await self.application.updater.stop()
             await self.application.stop()
             await self.application.shutdown()
+            self.application = None
