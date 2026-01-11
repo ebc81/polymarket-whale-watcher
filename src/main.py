@@ -56,7 +56,7 @@ class WhaleWatcher:
         await self.bot.start()
         logger.info("Telegram bot started")
         start_message = (
-            "🚀 PolyMarket Whale Watcher gestartet\n"
+            "🚀 PolyMarket Whale Watcher started\n"
             "━━━━━━━━━━━━━━━━━\n"
             f"Whales monitored: {len(config.whale_addresses)}\n"
             f"Poll interval: {config.poll_interval}s\n"
@@ -228,6 +228,10 @@ class WhaleWatcher:
                 
                 if new_trades_count > 0:
                     logger.info(f"Sent {new_trades_count} notifications")
+                
+                
+                
+
                 await self._maybe_send_heartbeat(new_trades_count, len(trades))
                 
             except Exception as e:

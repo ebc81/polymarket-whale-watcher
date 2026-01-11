@@ -179,19 +179,19 @@ class PolyMarketAPI:
         else:
             time_str = "unknown"
         link = f"https://polymarket.com/event/{event_slug}" if event_slug else None
-        
+        side_emoji = "🟢" if side == "BUY" else "🔴"
         message = (
             "🐋 Whale Trade Alert\n"
             "━━━━━━━━━━━━━━━━━\n"
             f"👤 Trader: {maker_display}\n"
             f"📊 Market: {title}\n"
             f"🏷️ Outcome: {outcome}\n"
-            f"⚖️ Side: {side}\n"
+            f"⚖️ Side: {side_emoji+side}\n"
             f"📈 Size: {size}\n"
-            f"💵 Price: ${price}\n"
+            f"💵 Price: ${price:.4f}\n"
             f"💰 Value: ${value:.2f}\n"
             f"🕒 Time: {time_str}\n"
-            f"🆔 ID: {trade_id}"
+            f"🆔 ID: {trade_id[:10]}...\n"
         )
         if link:
             message += f"\n🔗 Link: {link}"
